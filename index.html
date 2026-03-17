@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>КэтКлуб - Лента</title>
+  <style>
+    /* Общие стили и сброс */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f9f9f9;
+      color: #333;
+      line-height: 1.5;
+    }
+
+    a { text-decoration: none; color: inherit; }
+    ul { list-style: none; }
+
+    /* --- ШАПКА (HEADER) --- */
+    header {
+      background-color: #807584; /* Цвет шапки с макета */
+      padding: 15px 40px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+    }
+
+    .logo {
+      font-size: 24px;
+      font-weight: bold;
+      margin-right: 40px;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 25px;
+      flex-grow: 1;
+    }
+
+    .nav-links a {
+      font-size: 16px;
+      opacity: 0.9;
+    }
+
+    .nav-links a:hover { opacity: 1; text-decoration: underline; }
+
+    .auth-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn-auth {
+      background-color: #e0dbe0;
+      color: #333;
+      padding: 8px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* --- ОСНОВНОЙ КОНТЕЙНЕР --- */
+    .container {
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 2fr 1fr; /* 2 части контент, 1 часть сайдбар */
+      gap: 30px;
+    }
+
+    /* --- ЛЕНТА (ЛЕВАЯ КОЛОНКА) --- */
+    .feed-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .feed-title {
+      font-size: 22px;
+      font-weight: 400;
+    }
+
+    .btn-add {
+      background-color: #8e7f8f;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+
+    /* Карточка поста */
+    .post-card {
+      background-color: #f0eff3; /* Светло-серый фон карточек */
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #ddd;
+    }
+
+    .post-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      background-color: #333;
+      border-radius: 50%;
+    }
+
+    .username-block div:first-child {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .username-block div:last-child {
+      font-size: 10px;
+      color: #777;
+    }
+
+    .post-tag {
+      border: 1px solid #888;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      background: transparent;
+    }
+
+    .post-title {
+      font-size: 18px;
+      margin-bottom: 15px;
+    }
+
+    .post-image {
+      width: 100%;
+      height: 300px;
+      background-color: #ccc;
+      object-fit: cover;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+
+    .post-text {
+      font-size: 14px;
+      margin-bottom: 15px;
+      line-height: 1.4;
+    }
+
+    .post-footer {
+      border-top: 1px solid #ccc;
+      padding-top: 10px;
+      display: flex;
+      gap: 20px;
+    }
+
+    .icon-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: #555;
+    }
+
+    /* --- САЙДБАР (ПРАВАЯ КОЛОНКА) --- */
+    .sidebar-section {
+      margin-bottom: 30px;
+    }
+
+    .sidebar-title {
+      font-size: 18px;
+      margin-bottom: 15px;
+      font-weight: 400;
+    }
+
+    .sidebar-box {
+      background-color: #f0eff3;
+      border: 2px solid #333; /* Жирная рамка как на макете */
+      padding: 15px;
+      height: 300px; /* Фиксированная высота для скролла/слайдера */
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .list-content {
+      overflow-y: auto;
+      flex-grow: 1;
+      margin-bottom: 10px;
+    }
+
+    /* Скрываем скроллбар для красоты, но оставляем функционал */
+    .list-content::-webkit-scrollbar { width: 5px; }
+    .list-content::-webkit-scrollbar-thumb { background: #ccc; }
+
+    .sidebar-list li {
+      padding: 8px 0;
+      border-bottom: 1px solid #ddd;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .sidebar-list li:last-child { border-bottom: none; }
+
+    .sidebar-nav {
+      display: flex;
+      justify-content: space-between;
+      font-size: 20px;
+      cursor: pointer;
+    }
+
+    /* Адаптив для мобильных */
+    @media (max-width: 768px) {
+      .container { grid-template-columns: 1fr; }
+      header { flex-direction: column; gap: 15px; padding: 15px; }
+      .nav-links { flex-wrap: wrap; justify-content: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Шапка -->
+<header>
+  <div class="logo">КэтКлуб</div>
+  <nav class="nav-links">
+    <a href="#">Лента</a>
+    <a href="#">Питомцы</a>
+    <a href="#">События</a>
+  </nav>
+  <div class="auth-buttons">
+    <button class="btn-auth">Вход</button>
+    <button class="btn-auth">Регистрация</button>
+  </div>
+</header>
+
+<!-- Основной контент -->
+<div class="container">
+
+  <!-- Левая колонка: Лента -->
+  <main>
+    <div class="feed-header">
+      <h1 class="feed-title">Лента активностей</h1>
+      <button class="btn-add">Добавить пост</button>
+    </div>
+
+    <!-- Пост 1 -->
+    <article class="post-card">
+      <div class="post-header">
+        <div class="user-info">
+          <div class="avatar"></div>
+          <div class="username-block">
+            <div>Пользователь 1</div>
+            <div>30-02-2024</div>
+          </div>
+        </div>
+        <button class="post-tag">Юмор</button>
+      </div>
+      <h2 class="post-title">Мой кот любит бананы!</h2>
+      <!-- Заглушка картинки (черный кот) -->
+      <img src="https://placekitten.com/600/300" alt="Кот с бананом" class="post-image" style="filter: grayscale(100%);">
+      <p class="post-text">
+        Внезапно оказалось что мой кот обожает желтые сочные бананы!!!!!! Уплетает за обе щеки))))))) Катаемся со смеху всей семьей! Где это видано - кот есть банан
+      </p>
+      <div class="post-footer">
+        <button class="icon-btn">♡</button>
+        <button class="icon-btn">💬</button>
+      </div>
+    </article>
+
+    <!-- Пост 2 -->
+    <article class="post-card">
+      <div class="post-header">
+        <div class="user-info">
+          <div class="avatar"></div>
+          <div class="username-block">
+            <div>Пользователь 2</div>
+            <div>30-02-2024</div>
+          </div>
+        </div>
+        <button class="post-tag">Питание</button>
+      </div>
+      <h2 class="post-title">Мой кот любит арбузы!</h2>
+      <!-- Заглушка картинки (рыжий кот) -->
+      <img src="https://placekitten.com/601/300" alt="Кот с арбузом" class="post-image">
+      <p class="post-text">
+        Наш котеночек сегодня целый день уплетает арбузы! Выкинуть было жалко, вот и предложили Тимоше. А он нате: съел и добавочки просит хитрец
+      </p>
+      <div class="post-footer">
+        <button class="icon-btn">♡</button>
+        <button class="icon-btn">💬</button>
+      </div>
+    </article>
+
+  </main>
+
+  <!-- Правая колонка: Сайдбар -->
+  <aside>
+    <!-- Блок Темы -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">Темы</h3>
+      <div class="sidebar-box">
+        <ul class="list-content sidebar-list">
+          <li>Питание</li>
+          <li>Юмор</li>
+        </ul>
+        <div class="sidebar-nav">
+          <span>◀</span>
+          <span>▶</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Блок Пользователи -->
+    <div class="sidebar-section">
+      <h3 class="sidebar-title">Пользователи</h3>
+      <div class="sidebar-box">
+        <ul class="list-content sidebar-list">
+          <li>Пользователь 1</li>
+          <li>Пользователь 2</li>
+          <li>Пользователь 3</li>
+          <li>Пользователь 4</li>
+          <li>Пользователь 5</li>
+          <li>Пользователь 6</li>
+        </ul>
+        <div class="sidebar-nav">
+          <span>◀</span>
+          <span>▶</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+</body>
+</html>
