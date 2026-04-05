@@ -23,5 +23,37 @@ final class CommentModel
         $st->execute([':pid' => $postId]);
         return $st->fetchAll();
     }
+
+    /**
+     * Все комментарии к указанным постам (для ленты), без ограничения по числу на пост.
+     *
+     * @param list<int> $postIds
+     * @return array<int, list<array<string,mixed>>>
+     */
+    public static function listGroupedForPosts(PDO $pdo, array $postIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map(static fn($x) => (int)$x, $postIds), static fn($x) => $x > 0)));
+        $out = [];
+        foreach ($ids as $id) {
+            $out[$id] = [];
+        }
+        if ($ids === []) {
+            return $out;
+        }
+        $in = implode(',', $ids);
+        $sql = '
+            SELECT c.post_id, c.id, c.body, c.created_at, u.nick
+            FROM comments c
+            JOIN users u ON u.id = c.user_id
+            WHERE c.post_id IN (' . $in . ')
+            ORDER BY c.post_id ASC, c.created_at ASC, c.id ASC
+        ';
+        foreach ($pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $pid = (int)$row['post_id'];
+            $out[$pid][] = $row;
+        }
+
+        return $out;
+    }
 }
 

@@ -120,5 +120,62 @@ final class PostModel
         $ts = $pdo->query('SELECT COALESCE(MAX(EXTRACT(EPOCH FROM updated_at)), 0) FROM posts')->fetchColumn();
         return (int)$ts;
     }
+
+    public static function exists(PDO $pdo, int $postId): bool
+    {
+        if ($postId < 1) {
+            return false;
+        }
+        $st = $pdo->prepare('SELECT 1 FROM posts WHERE id = :id');
+        $st->execute([':id' => $postId]);
+        return (bool)$st->fetchColumn();
+    }
+
+    /** @return bool true if the post is liked after this call, false if unliked */
+    public static function toggleLike(PDO $pdo, int $postId, int $userId): bool
+    {
+        $del = $pdo->prepare('DELETE FROM post_likes WHERE post_id = :p AND user_id = :u');
+        $del->execute([':p' => $postId, ':u' => $userId]);
+        if ($del->rowCount() > 0) {
+            return false;
+        }
+        $ins = $pdo->prepare('INSERT INTO post_likes (post_id, user_id) VALUES (:p, :u)');
+        $ins->execute([':p' => $postId, ':u' => $userId]);
+
+        return true;
+    }
+
+    /**
+     * @param list<int> $postIds
+     * @return array{counts:array<int,int>, liked:array<int,bool>}
+     */
+    public static function feedLikeData(PDO $pdo, array $postIds, ?int $userId): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map(static fn($x) => (int)$x, $postIds), static fn($x) => $x > 0)));
+        $counts = [];
+        $liked = [];
+        foreach ($ids as $id) {
+            $counts[$id] = 0;
+            $liked[$id] = false;
+        }
+        if ($ids === []) {
+            return ['counts' => $counts, 'liked' => $liked];
+        }
+        $in = implode(',', $ids);
+        $sql = 'SELECT post_id, COUNT(*)::int AS c FROM post_likes WHERE post_id IN (' . $in . ') GROUP BY post_id';
+        foreach ($pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $pid = (int)$row['post_id'];
+            $counts[$pid] = (int)$row['c'];
+        }
+        if ($userId !== null && $userId > 0) {
+            $st = $pdo->prepare('SELECT post_id FROM post_likes WHERE user_id = :u AND post_id IN (' . $in . ')');
+            $st->execute([':u' => $userId]);
+            while ($row = $st->fetch(PDO::FETCH_ASSOC)) {
+                $liked[(int)$row['post_id']] = true;
+            }
+        }
+
+        return ['counts' => $counts, 'liked' => $liked];
+    }
 }
 

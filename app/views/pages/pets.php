@@ -15,8 +15,26 @@ if ($selectedBreed !== '') {
     <h1 class="page-title">Галерея питомцев</h1>
 </header>
 
+<div class="pets-toolbar">
+    <form class="filter-row pets-filter-form" action="/pets" method="get">
+        <div class="field">
+            <label class="label" for="breed">Порода</label>
+            <select class="select" id="breed" name="breed" title="Фильтр по породе">
+                <option value="">Все породы</option>
+                <?php foreach ($breeds as $b): ?>
+                    <option value="<?= e($b) ?>" <?= $selectedBreed === $b ? 'selected' : '' ?>><?= e($b) ?></option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+        <button class="btn btn-primary" type="submit" title="Применить фильтр">Показать</button>
+    </form>
+    <?php if (!empty($user['is_auth'])): ?>
+        <button type="button" class="btn btn-primary btn-sm" data-open-panel="add-pet" aria-expanded="false" aria-controls="add-pet" title="Открыть форму добавления питомца">Добавить питомца</button>
+    <?php endif; ?>
+</div>
+
 <?php if (!empty($user['is_auth'])): ?>
-    <section class="card" aria-label="Добавить питомца" style="margin-bottom:20px">
+    <section class="card feed-add-post" id="add-pet" hidden aria-label="Добавить питомца">
         <h2 class="sidebar-title" style="margin-bottom:10px">Добавить питомца</h2>
         <form action="/api/pets/create" method="post">
             <input type="hidden" name="csrf_token" value="<?= e(Csrf::token()) ?>">
@@ -36,9 +54,13 @@ if ($selectedBreed !== '') {
             </div>
             <div class="filter-row">
                 <div class="field" style="flex:1;min-width:260px">
-                    <label class="label" for="pet-photo">Фото (URL)</label>
-                    <input class="input" id="pet-photo" name="photo_url" type="url" placeholder="https://..." >
+                    <label class="label" for="pet-photo">Главное фото (URL)</label>
+                    <input class="input" id="pet-photo" name="photo_url" type="url" placeholder="https://…">
                 </div>
+            </div>
+            <div class="field" style="margin-bottom:12px">
+                <label class="label" for="pet-more-photos">Дополнительные фото</label>
+                <textarea class="textarea" id="pet-more-photos" name="more_photos" rows="4" placeholder="По одному URL фото на строку"></textarea>
             </div>
             <div class="field" style="margin-bottom:12px">
                 <label class="label" for="pet-story">История</label>
@@ -49,22 +71,9 @@ if ($selectedBreed !== '') {
     </section>
 <?php endif; ?>
 
-<form class="filter-row" action="/pets" method="get">
-    <div class="field">
-        <label class="label" for="breed">Порода</label>
-        <select class="select" id="breed" name="breed" title="Фильтр по породе">
-            <option value="">Все породы</option>
-            <?php foreach ($breeds as $b): ?>
-                <option value="<?= e($b) ?>" <?= $selectedBreed === $b ? 'selected' : '' ?>><?= e($b) ?></option>
-            <?php endforeach; ?>
-        </select>
-    </div>
-    <button class="btn btn-primary" type="submit" title="Применить фильтр">Показать</button>
-</form>
-
 <?php if (empty($pets)): ?>
     <div class="card">
-        <p>Пока питомцев нет. После подключения БД здесь появятся карточки с реальными данными.</p>
+        <p>В галерее пока нет питомцев.</p>
         <p><a class="btn btn-sm" href="/pets/1" title="Пример карточки питомца">Открыть пример карточки</a></p>
     </div>
 <?php else: ?>

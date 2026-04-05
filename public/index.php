@@ -54,10 +54,8 @@ function authFail(string $mode, string $message, int $status = 422): never
             'description' => $mode === 'register' ? 'Регистрация владельца питомца в КэтКлуб.' : 'Вход в КэтКлуб.',
             'og' => ['type' => 'website'],
             'schema' => siteSchemaHome(),
-            'breadcrumbs' => [
-                ['label' => 'Главная', 'url' => '/'],
-                ['label' => $mode === 'register' ? 'Регистрация' : 'Вход', 'url' => $mode === 'register' ? '/register' : '/login'],
-            ],
+            'layout' => 'auth',
+            'breadcrumbs' => [],
         ],
         0,
         $status
@@ -146,6 +144,19 @@ function forbidden(): never
     );
 }
 
+function safeInternalRedirect(string $path): string
+{
+    $path = trim($path);
+    if ($path === '' || mb_strlen($path) > 500) {
+        return '/';
+    }
+    if (!str_starts_with($path, '/') || str_starts_with($path, '//')) {
+        return '/';
+    }
+
+    return $path;
+}
+
 function requireAuth(): void
 {
     if (empty($_SESSION['user'])) {
@@ -173,13 +184,12 @@ if (str_starts_with($path, '/api/')) {
     $pdo = safeDb($config);
     if (!$pdo) {
         if (wantsJson()) {
-            Response::json(['ok' => false, 'error' => 'DB is not configured'], 500);
+            Response::json(['ok' => false, 'error' => 'Service unavailable'], 503);
         }
-        render(__DIR__ . '/../app/views/pages/403.php', [], [
-            'title' => 'КэтКлуб — Ошибка конфигурации',
-            'description' => 'База данных не настроена.',
-            'schema' => siteSchemaHome(),
-        ], 0, 500);
+        Response::status(503);
+        Response::contentType('text/plain; charset=utf-8');
+        echo 'Сервис временно недоступен.';
+        exit;
     }
 
     if ($path === '/api/auth/register') {
@@ -232,6 +242,7 @@ if (str_starts_with($path, '/api/')) {
         $age = Input::int($_POST, 'age', 0);
         $photo = Input::url($_POST, 'photo_url', 2000);
         $story = Input::str($_POST, 'story', 5000);
+        $morePhotos = Input::str($_POST, 'more_photos', 12000);
 
         if (mb_strlen($name) < 1) authFail('login', 'Кличка обязательна', 422);
         if (mb_strlen($breed) < 1) authFail('login', 'Порода обязательна', 422);
@@ -239,10 +250,59 @@ if (str_starts_with($path, '/api/')) {
 
         $uid = (int)($_SESSION['user']['id'] ?? 0);
         $pid = PetModel::create($pdo, $uid, $name, $breed, $age, $photo, $story);
+        foreach (preg_split('/\r\n|\r|\n/', $morePhotos) as $line) {
+            $line = trim($line);
+            if ($line === '' || mb_strlen($line) > 2000) {
+                continue;
+            }
+            if (!filter_var($line, FILTER_VALIDATE_URL)) {
+                continue;
+            }
+            PetModel::addPhoto($pdo, $pid, $line);
+        }
         if (wantsJson()) {
             Response::json(['ok' => true, 'id' => $pid], 201);
         }
         Response::redirect('/pets/' . $pid, 302);
+    }
+
+    if ($path === '/api/posts/create') {
+        requireAuth();
+        $title = Input::str($_POST, 'title', 200);
+        $body = Input::str($_POST, 'body', 8000);
+        $photo = Input::url($_POST, 'photo_url', 2000);
+        $topicTitle = Input::str($_POST, 'topic_title', 120);
+        $redirect = safeInternalRedirect(Input::str($_POST, 'redirect', 500));
+
+        if (mb_strlen($title) < 3) {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => 'Слишком короткий заголовок'], 422);
+            }
+            Response::redirect($redirect, 302);
+        }
+        if (mb_strlen($body) < 1) {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => 'Текст поста обязателен'], 422);
+            }
+            Response::redirect($redirect, 302);
+        }
+
+        $topicId = null;
+        if ($topicTitle !== '') {
+            $st = $pdo->prepare('SELECT id FROM topics WHERE title = :t LIMIT 1');
+            $st->execute([':t' => $topicTitle]);
+            $tid = $st->fetchColumn();
+            if ($tid !== false) {
+                $topicId = (int)$tid;
+            }
+        }
+
+        $uid = (int)($_SESSION['user']['id'] ?? 0);
+        PostModel::create($pdo, $uid, $topicId, $title, $body, $photo);
+        if (wantsJson()) {
+            Response::json(['ok' => true], 201);
+        }
+        Response::redirect($redirect, 302);
     }
 
     // Forum endpoints removed
@@ -264,6 +324,55 @@ if (str_starts_with($path, '/api/')) {
             Response::json(['ok' => true, 'id' => $id], 201);
         }
         Response::redirect('/events', 302);
+    }
+
+    if ($path === '/api/posts/toggle-like') {
+        requireAuth();
+        $postId = Input::int($_POST, 'post_id', 0);
+        $redirect = safeInternalRedirect(Input::str($_POST, 'redirect', 500));
+        if ($postId < 1 || !PostModel::exists($pdo, $postId)) {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => 'Пост не найден'], 404);
+            }
+            Response::redirect($redirect, 302);
+        }
+        PostModel::toggleLike($pdo, $postId, (int)$_SESSION['user']['id']);
+        if (wantsJson()) {
+            $uid = (int)$_SESSION['user']['id'];
+            $data = PostModel::feedLikeData($pdo, [$postId], $uid);
+
+            Response::json([
+                'ok' => true,
+                'post_id' => $postId,
+                'like_count' => $data['counts'][$postId] ?? 0,
+                'liked' => $data['liked'][$postId] ?? false,
+            ]);
+        }
+        Response::redirect($redirect, 302);
+    }
+
+    if ($path === '/api/posts/comment') {
+        requireAuth();
+        $postId = Input::int($_POST, 'post_id', 0);
+        $body = Input::str($_POST, 'body', 2000);
+        $redirect = safeInternalRedirect(Input::str($_POST, 'redirect', 500));
+        if ($postId < 1 || !PostModel::exists($pdo, $postId)) {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => 'Пост не найден'], 404);
+            }
+            Response::redirect($redirect, 302);
+        }
+        if (mb_strlen($body) < 1) {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => 'Введите текст комментария'], 422);
+            }
+            Response::redirect($redirect, 302);
+        }
+        CommentModel::create($pdo, $postId, (int)$_SESSION['user']['id'], $body);
+        if (wantsJson()) {
+            Response::json(['ok' => true], 201);
+        }
+        Response::redirect($redirect, 302);
     }
 
     Response::json(['ok' => false, 'error' => 'Unknown API route'], 404);
@@ -394,11 +503,43 @@ if ($path === '/') {
     $pdo = safeDb($config);
     $selectedTopic = Input::str($_GET, 'topic', 120);
     $selectedAuthor = Input::str($_GET, 'author', 30);
+    $sidebarPerPage = 6;
+    $topicPage = max(1, Input::int($_GET, 'tp', 1));
+    $memberPage = max(1, Input::int($_GET, 'mp', 1));
+
     $posts = [];
-    $topics = ['Питание', 'Юмор'];
-    $members = ['Пользователь 1', 'Пользователь 2', 'Пользователь 3', 'Пользователь 4'];
+    $topics = [];
+    $members = [];
+    $topicOptions = [];
+    $topicsPages = 1;
+    $membersPages = 1;
+
     $lastMod = time() - 60;
+    $feedRedirect = currentFeedRedirect();
+    $sessionUser = currentUser();
+    $userId = !empty($sessionUser['is_auth']) ? (int)($sessionUser['id'] ?? 0) : 0;
+    $likeUserId = $userId > 0 ? $userId : null;
+
     if ($pdo) {
+        $tList = TopicModel::list($pdo, $sidebarPerPage, ($topicPage - 1) * $sidebarPerPage);
+        $topicsTotal = $tList['total'];
+        $topicsPages = (int)max(1, (int)ceil($topicsTotal / $sidebarPerPage));
+        if ($topicPage > $topicsPages) {
+            $topicPage = $topicsPages;
+            $tList = TopicModel::list($pdo, $sidebarPerPage, ($topicPage - 1) * $sidebarPerPage);
+        }
+        $topics = array_map(static fn(array $r): string => (string)$r['title'], $tList['items']);
+        $topicOptions = TopicModel::listTitles($pdo, 100);
+
+        $mList = UserModel::listNicksPage($pdo, $sidebarPerPage, ($memberPage - 1) * $sidebarPerPage);
+        $membersTotal = $mList['total'];
+        $membersPages = (int)max(1, (int)ceil($membersTotal / $sidebarPerPage));
+        if ($memberPage > $membersPages) {
+            $memberPage = $membersPages;
+            $mList = UserModel::listNicksPage($pdo, $sidebarPerPage, ($memberPage - 1) * $sidebarPerPage);
+        }
+        $members = $mList['items'];
+
         $res = PostModel::listFeed(
             $pdo,
             $selectedTopic !== '' ? $selectedTopic : null,
@@ -406,8 +547,16 @@ if ($path === '/') {
             10,
             0
         );
-        $posts = array_map(static function (array $p): array {
+        $items = $res['items'];
+        $postIds = array_map(static fn(array $p): int => (int)($p['id'] ?? 0), $items);
+        $likeData = PostModel::feedLikeData($pdo, $postIds, $likeUserId);
+        $commentsByPost = CommentModel::listGroupedForPosts($pdo, $postIds);
+
+        $posts = array_map(static function (array $p) use ($likeData, $commentsByPost): array {
+            $id = (int)($p['id'] ?? 0);
+
             return [
+                'id' => $id,
                 'user' => (string)($p['nick'] ?? ''),
                 'date' => (string)($p['created_at'] ?? ''),
                 'tag' => (string)($p['topic_title'] ?? 'Без темы'),
@@ -415,14 +564,24 @@ if ($path === '/') {
                 'image' => (string)($p['photo_url'] ?? ''),
                 'image_alt' => (string)($p['title'] ?? 'Фото'),
                 'text' => (string)($p['body'] ?? ''),
+                'like_count' => $likeData['counts'][$id] ?? 0,
+                'liked' => (bool)($likeData['liked'][$id] ?? false),
+                'comments' => $commentsByPost[$id] ?? [],
             ];
-        }, $res['items']);
-        $topics = TopicModel::listTitles($pdo, 20);
-        $members = array_map(
-            static fn($r) => (string)$r['nick'],
-            $pdo->query('SELECT nick FROM users ORDER BY id DESC LIMIT 20')->fetchAll()
-        );
+        }, $items);
         $lastMod = max(PostModel::lastUpdated($pdo), TopicModel::lastUpdated($pdo), EventModel::lastUpdated($pdo));
+    } else {
+        $topicOptions = ['Питание', 'Юмор'];
+        $topicsAll = $topicOptions;
+        $membersAll = ['Пользователь 1', 'Пользователь 2', 'Пользователь 3', 'Пользователь 4'];
+        $topicsTotal = count($topicsAll);
+        $membersTotal = count($membersAll);
+        $topicsPages = (int)max(1, (int)ceil($topicsTotal / $sidebarPerPage));
+        $membersPages = (int)max(1, (int)ceil($membersTotal / $sidebarPerPage));
+        $topicPage = min($topicPage, $topicsPages);
+        $memberPage = min($memberPage, $membersPages);
+        $topics = array_slice($topicsAll, ($topicPage - 1) * $sidebarPerPage, $sidebarPerPage);
+        $members = array_slice($membersAll, ($memberPage - 1) * $sidebarPerPage, $sidebarPerPage);
     }
     render(
         __DIR__ . '/../app/views/pages/feed.php',
@@ -430,8 +589,15 @@ if ($path === '/') {
             'posts' => $posts,
             'topics' => $topics,
             'members' => $members,
+            'topicOptions' => $topicOptions,
             'selectedTopic' => $selectedTopic,
             'selectedAuthor' => $selectedAuthor,
+            'topicPage' => $topicPage,
+            'topicsPages' => $topicsPages,
+            'memberPage' => $memberPage,
+            'membersPages' => $membersPages,
+            'feedRedirect' => $feedRedirect,
+            'dbConnected' => $pdo !== null,
         ],
         [
             'title' => 'КэтКлуб — Лента активностей',

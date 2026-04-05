@@ -30,7 +30,7 @@ $showLogin = $mode === 'login';
                     <label class="form-label" for="login-password">Пароль</label>
                     <div class="password-container">
                         <input class="form-input" type="password" id="login-password" name="password" placeholder="Введите пароль" required>
-                        <button type="button" class="password-toggle" data-toggle-password="login-password" title="Показать/скрыть пароль">👁</button>
+                        <button type="button" class="password-toggle" data-toggle-password="login-password" data-label-show="Показать" data-label-hide="Скрыть" aria-label="Показать пароль" title="Показать пароль">Показать</button>
                     </div>
                 </div>
                 <button type="submit" class="auth-button" title="Войти">Вход</button>
@@ -54,14 +54,14 @@ $showLogin = $mode === 'login';
                     <label class="form-label" for="reg-password">Пароль</label>
                     <div class="password-container">
                         <input class="form-input" type="password" id="reg-password" name="password" placeholder="Придумайте пароль" required>
-                        <button type="button" class="password-toggle" data-toggle-password="reg-password" title="Показать/скрыть пароль">👁</button>
+                        <button type="button" class="password-toggle" data-toggle-password="reg-password" data-label-show="Показать" data-label-hide="Скрыть" aria-label="Показать пароль" title="Показать пароль">Показать</button>
                     </div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="reg-confirm">Повторите пароль</label>
                     <div class="password-container">
                         <input class="form-input" type="password" id="reg-confirm" name="password_confirm" placeholder="Повторите пароль" required>
-                        <button type="button" class="password-toggle" data-toggle-password="reg-confirm" title="Показать/скрыть пароль">👁</button>
+                        <button type="button" class="password-toggle" data-toggle-password="reg-confirm" data-label-show="Показать" data-label-hide="Скрыть" aria-label="Показать пароль" title="Показать пароль">Показать</button>
                     </div>
                 </div>
                 <button type="submit" class="auth-button" title="Зарегистрироваться">Регистрация</button>

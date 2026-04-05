@@ -27,5 +27,22 @@ final class UserModel
         $id = $st->fetchColumn();
         return (int)$id;
     }
+
+    /**
+     * @return array{items:array<int,string>, total:int}
+     */
+    public static function listNicksPage(PDO $pdo, int $limit, int $offset): array
+    {
+        $limit = max(1, min(50, $limit));
+        $offset = max(0, $offset);
+        $total = (int)$pdo->query('SELECT COUNT(*) FROM users')->fetchColumn();
+        $st = $pdo->prepare('SELECT nick FROM users ORDER BY id DESC LIMIT :lim OFFSET :off');
+        $st->bindValue(':lim', $limit, PDO::PARAM_INT);
+        $st->bindValue(':off', $offset, PDO::PARAM_INT);
+        $st->execute();
+        $items = array_map(static fn($r) => (string)$r['nick'], $st->fetchAll());
+
+        return ['items' => $items, 'total' => $total];
+    }
 }
 

@@ -4,11 +4,16 @@ declare(strict_types=1);
 ?>
 <header class="page-header">
     <h1 class="page-title">События клуба</h1>
+    <?php if (!empty($user['is_auth'])): ?>
+        <div class="page-header-actions">
+            <button type="button" class="btn btn-primary btn-sm" data-open-panel="add-event" aria-expanded="false" aria-controls="add-event" title="Открыть форму нового события">Добавить событие</button>
+        </div>
+    <?php endif; ?>
 </header>
 
 <?php if (!empty($user['is_auth'])): ?>
-    <section class="card" aria-label="Добавить событие" style="margin-bottom:20px">
-        <h2 class="sidebar-title" style="margin-bottom:10px">Добавить событие</h2>
+    <section class="card feed-add-post" id="add-event" hidden aria-label="Добавить событие">
+        <h2 class="sidebar-title" style="margin-bottom:10px">Новое событие</h2>
         <form action="/api/events/create" method="post">
             <input type="hidden" name="csrf_token" value="<?= e(Csrf::token()) ?>">
             <div class="filter-row">
@@ -42,37 +47,7 @@ declare(strict_types=1);
 
 <?php if (empty($events)): ?>
     <div class="card">
-        <p>Список событий будет подгружаться из БД. Пока — шаблон разметки.</p>
-        <div class="events-grid" style="margin-top:16px">
-            <article class="event-card">
-                <div class="event-content">
-                    <h2 class="event-title">Встреча клуба в парке</h2>
-                    <p class="event-description">Неформальная встреча владельцев и питомцев. Приносите игрушки и лакомства.</p>
-                    <div class="event-details">
-                        <div><strong>Место:</strong> г. Омск, парк «Зелёный остров»</div>
-                        <div><strong>Время:</strong> 19:00</div>
-                    </div>
-                </div>
-                <div class="event-date-badge" aria-label="Дата события">
-                    <span class="event-date-day">15</span>
-                    <span class="event-date-month">март</span>
-                </div>
-            </article>
-            <article class="event-card">
-                <div class="event-content">
-                    <h2 class="event-title">Конкурс «Самые усы»</h2>
-                    <p class="event-description">Покажите самые красивые усы. Будет фотозона и призы.</p>
-                    <div class="event-details">
-                        <div><strong>Место:</strong> Коворкинг «Кот&amp;Код»</div>
-                        <div><strong>Время:</strong> 12:00</div>
-                    </div>
-                </div>
-                <div class="event-date-badge" aria-label="Дата события">
-                    <span class="event-date-day">22</span>
-                    <span class="event-date-month">март</span>
-                </div>
-            </article>
-        </div>
+        <p>Событий пока нет.</p>
     </div>
 <?php else: ?>
     <div class="events-grid">
@@ -87,11 +62,10 @@ declare(strict_types=1);
                     </div>
                 </div>
                 <div class="event-date-badge" aria-label="Дата события">
-                                    <span class="event-date-day"><?= formatEventDate($ev['starts_at'] ?? '', 'day') ?></span>
-                                    <span class="event-date-month"><?= formatEventDate($ev['starts_at'] ?? '', 'month') ?></span>
+                    <span class="event-date-day"><?= formatEventDate($ev['starts_at'] ?? '', 'day') ?></span>
+                    <span class="event-date-month"><?= formatEventDate($ev['starts_at'] ?? '', 'month') ?></span>
                 </div>
             </article>
         <?php endforeach; ?>
     </div>
 <?php endif; ?>
-

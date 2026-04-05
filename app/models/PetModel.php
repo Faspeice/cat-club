@@ -82,6 +82,15 @@ final class PetModel
         return (int)$st->fetchColumn();
     }
 
+    public static function addPhoto(PDO $pdo, int $petId, string $photoUrl): void
+    {
+        if ($photoUrl === '') {
+            return;
+        }
+        $st = $pdo->prepare('INSERT INTO pet_photos (pet_id, photo_url) VALUES (:pid, :url)');
+        $st->execute([':pid' => $petId, ':url' => $photoUrl]);
+    }
+
     public static function lastUpdated(PDO $pdo, ?int $petId = null): int
     {
         if ($petId !== null) {

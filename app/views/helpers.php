@@ -18,6 +18,51 @@ if (!function_exists('absUrl')) {
         return $scheme . '://' . $host . $path;
     }
 }
+if (!function_exists('feedSidebarUrl')) {
+    function feedSidebarUrl(string $topic, string $author, int $topicPage, int $memberPage): string
+    {
+        $q = [];
+        if ($topic !== '') {
+            $q['topic'] = $topic;
+        }
+        if ($author !== '') {
+            $q['author'] = $author;
+        }
+        if ($topicPage > 1) {
+            $q['tp'] = (string)$topicPage;
+        }
+        if ($memberPage > 1) {
+            $q['mp'] = (string)$memberPage;
+        }
+        $s = http_build_query($q);
+
+        return $s === '' ? '/' : ('/?' . $s);
+    }
+}
+
+if (!function_exists('currentFeedRedirect')) {
+    function currentFeedRedirect(): string
+    {
+        $path = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+        if (!is_string($path) || $path === '') {
+            $path = '/';
+        }
+        $qs = $_SERVER['QUERY_STRING'] ?? '';
+        if (!is_string($qs)) {
+            $qs = '';
+        }
+        $out = $path === '' ? '/' : $path;
+        if ($qs !== '') {
+            $out .= '?' . $qs;
+        }
+        if (mb_strlen($out) > 500) {
+            return '/';
+        }
+
+        return $out;
+    }
+}
+
 if (!function_exists('formatEventDate')) {
 function formatEventDate(string $dateTime, string $format = 'd'): string
 {
@@ -25,13 +70,18 @@ function formatEventDate(string $dateTime, string $format = 'd'): string
         return '';
     }
 
+    /* Именительный падеж — как на макете карточки события (число отдельно, месяц под ним) */
     $months = [
-        '01' => 'янв', '02' => 'фев', '03' => 'мар', '04' => 'апр',
-        '05' => 'май', '06' => 'июн', '07' => 'июл', '08' => 'авг',
-        '09' => 'сен', '10' => 'окт', '11' => 'ноя', '12' => 'дек'
+        '01' => 'январь', '02' => 'февраль', '03' => 'март', '04' => 'апрель',
+        '05' => 'май', '06' => 'июнь', '07' => 'июль', '08' => 'август',
+        '09' => 'сентябрь', '10' => 'октябрь', '11' => 'ноябрь', '12' => 'декабрь'
     ];
 
-    $date = new DateTime($dateTime);
+    try {
+        $date = new DateTime($dateTime);
+    } catch (\Throwable) {
+        return '';
+    }
 
     if ($format === 'day') {
         return $date->format('d');
@@ -39,7 +89,7 @@ function formatEventDate(string $dateTime, string $format = 'd'): string
 
     if ($format === 'month') {
         $monthNum = $date->format('m');
-        return $months[$monthNum];
+        return $months[$monthNum] ?? '';
     }
 
     return '';
