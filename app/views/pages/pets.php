@@ -13,7 +13,6 @@ if ($selectedBreed !== '') {
 ?>
 <header class="page-header">
     <h1 class="page-title">Галерея питомцев</h1>
-    <a class="btn btn-primary" href="/profile" title="Перейти в профиль">Мой профиль</a>
 </header>
 
 <?php if (!empty($user['is_auth'])): ?>

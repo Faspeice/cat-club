@@ -4,7 +4,6 @@ declare(strict_types=1);
 ?>
 <header class="page-header">
     <h1 class="page-title">События клуба</h1>
-    <a class="btn btn-primary btn-sm" href="/" title="Вернуться в ленту">Лента</a>
 </header>
 
 <?php if (!empty($user['is_auth'])): ?>
@@ -86,6 +85,10 @@ declare(strict_types=1);
                         <div><strong>Место:</strong> <?= e((string)($ev['place'] ?? '')) ?></div>
                         <div><strong>Начало:</strong> <?= e((string)($ev['starts_at'] ?? '')) ?></div>
                     </div>
+                </div>
+                <div class="event-date-badge" aria-label="Дата события">
+                                    <span class="event-date-day"><?= formatEventDate($ev['starts_at'] ?? '', 'day') ?></span>
+                                    <span class="event-date-month"><?= formatEventDate($ev['starts_at'] ?? '', 'month') ?></span>
                 </div>
             </article>
         <?php endforeach; ?>

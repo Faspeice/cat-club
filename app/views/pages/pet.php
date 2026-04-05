@@ -21,11 +21,6 @@ if (!is_array($photos)) {
             <div><strong>Владелец:</strong> <?= e((string)($pet['owner_nick'] ?? '')) ?></div>
             <div><strong>Контакты:</strong> <?= e((string)($pet['owner_contact'] ?? '')) ?></div>
         </div>
-        <div class="meta-row">
-            <div>Профиль питомца</div>
-            <div>•</div>
-            <div><a href="/pets" title="Вернуться к галерее">Вернуться к галерее</a></div>
-        </div>
     </div>
 </div>
 
