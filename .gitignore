@@ -1,0 +1,10 @@
+/.idea/
+/app/config/config.php
+/public/.phpunit.result.cache
+/public/.htaccess
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+nginx.conf
