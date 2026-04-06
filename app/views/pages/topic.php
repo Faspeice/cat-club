@@ -11,7 +11,7 @@ declare(strict_types=1);
 <?php if (!empty($user['is_auth'])): ?>
     <section class="card" aria-label="Добавить пост" style="margin-bottom:20px">
         <h2 class="sidebar-title" style="margin-bottom:10px">Новый пост</h2>
-        <form action="/api/posts/create" method="post">
+        <form action="/api/posts/create" method="post" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?= e(Csrf::token()) ?>">
             <input type="hidden" name="topic_id" value="<?= (int)($topic['id'] ?? 0) ?>">
             <div class="field" style="margin-bottom:12px">
@@ -23,8 +23,8 @@ declare(strict_types=1);
                 <textarea class="textarea" id="post-body" name="body" required></textarea>
             </div>
             <div class="field" style="margin-bottom:12px">
-                <label class="label" for="post-photo">Фото (URL)</label>
-                <input class="input" id="post-photo" name="photo_url" type="url" placeholder="https://...">
+                <label class="label" for="post-photo-file">Фото (файл)</label>
+                <input class="input" id="post-photo-file" name="photo_file" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
             </div>
             <button class="btn btn-primary" type="submit" title="Опубликовать">Опубликовать</button>
         </form>

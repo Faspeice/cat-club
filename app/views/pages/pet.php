@@ -8,6 +8,7 @@ $photos = $pet['photos'] ?? [];
 if (!is_array($photos)) {
     $photos = [];
 }
+$isOwner = !empty($user['is_auth']) && (int)($user['id'] ?? 0) === (int)($pet['owner_id'] ?? 0);
 ?>
 <div class="pet-main">
     <div class="pet-main-image">
@@ -30,6 +31,17 @@ if (!is_array($photos)) {
 
 <section class="card" aria-label="Галерея питомца" style="margin-top:20px">
     <h2 class="sidebar-title" style="margin-bottom:12px">Дополнительные фотографии</h2>
+    <?php if ($isOwner): ?>
+        <form action="/api/pets/add-photos" method="post" enctype="multipart/form-data" style="margin-bottom:12px">
+            <input type="hidden" name="csrf_token" value="<?= e(Csrf::token()) ?>">
+            <input type="hidden" name="pet_id" value="<?= (int)($pet['id'] ?? 0) ?>">
+            <div class="field" style="margin-bottom:10px">
+                <label class="label" for="pet-gallery-files">Загрузить фото в галерею</label>
+                <input class="input" id="pet-gallery-files" name="more_photo_files[]" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple required>
+            </div>
+            <button class="btn btn-primary btn-sm" type="submit">Добавить фото</button>
+        </form>
+    <?php endif; ?>
     <?php if (empty($photos)): ?>
         <p>Пока дополнительных фото нет.</p>
     <?php else: ?>

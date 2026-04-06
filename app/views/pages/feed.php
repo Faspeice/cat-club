@@ -43,7 +43,7 @@ $nextMembersUrl = feedSidebarUrl($selectedTopic, $selectedAuthor, $topicPage, mi
         <?php if (!empty($user['is_auth']) && $dbConnected): ?>
             <section class="card feed-add-post" id="add-post" hidden aria-label="Новый пост">
                 <h2 class="sidebar-title" style="margin-bottom:12px;font-size:18px">Новый пост</h2>
-                <form action="/api/posts/create" method="post">
+                <form action="/api/posts/create" method="post" enctype="multipart/form-data">
                     <input type="hidden" name="csrf_token" value="<?= e(Csrf::token()) ?>">
                     <input type="hidden" name="redirect" value="<?= e($feedRedirect) ?>">
                     <div class="filter-row">
@@ -68,8 +68,8 @@ $nextMembersUrl = feedSidebarUrl($selectedTopic, $selectedAuthor, $topicPage, mi
                         <textarea class="textarea" id="post-body" name="body" required placeholder="Текст поста…"></textarea>
                     </div>
                     <div class="field" style="margin-bottom:12px">
-                        <label class="label" for="post-photo">Фото (URL, необязательно)</label>
-                        <input class="input" id="post-photo" name="photo_url" type="url" placeholder="https://…" maxlength="2000">
+                        <label class="label" for="post-photo-file">Фото (файл, необязательно)</label>
+                        <input class="input" id="post-photo-file" name="photo_file" type="file" accept="image/jpeg,image/png,image/webp,image/gif">
                     </div>
                     <button class="btn btn-primary" type="submit">Опубликовать</button>
                 </form>

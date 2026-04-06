@@ -2,6 +2,7 @@
 /app/config/config.php
 /public/.phpunit.result.cache
 /public/.htaccess
+/public/uploads/
 *.log
 *.tmp
 *.bak

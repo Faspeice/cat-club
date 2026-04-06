@@ -36,7 +36,7 @@ if ($selectedBreed !== '') {
 <?php if (!empty($user['is_auth'])): ?>
     <section class="card feed-add-post" id="add-pet" hidden aria-label="Добавить питомца">
         <h2 class="sidebar-title" style="margin-bottom:10px">Добавить питомца</h2>
-        <form action="/api/pets/create" method="post">
+        <form action="/api/pets/create" method="post" enctype="multipart/form-data">
             <input type="hidden" name="csrf_token" value="<?= e(Csrf::token()) ?>">
             <div class="filter-row">
                 <div class="field" style="flex:1;min-width:220px">
@@ -54,13 +54,13 @@ if ($selectedBreed !== '') {
             </div>
             <div class="filter-row">
                 <div class="field" style="flex:1;min-width:260px">
-                    <label class="label" for="pet-photo">Главное фото (URL)</label>
-                    <input class="input" id="pet-photo" name="photo_url" type="url" placeholder="https://…">
+                    <label class="label" for="pet-photo-file">Главное фото</label>
+                    <input class="input" id="pet-photo-file" name="photo_file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" required>
                 </div>
-            </div>
-            <div class="field" style="margin-bottom:12px">
-                <label class="label" for="pet-more-photos">Дополнительные фото</label>
-                <textarea class="textarea" id="pet-more-photos" name="more_photos" rows="4" placeholder="По одному URL фото на строку"></textarea>
+                <div class="field" style="flex:1;min-width:260px">
+                    <label class="label" for="pet-more-photos-files">Дополнительные фото</label>
+                    <input class="input" id="pet-more-photos-files" name="more_photo_files[]" type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple>
+                </div>
             </div>
             <div class="field" style="margin-bottom:12px">
                 <label class="label" for="pet-story">История</label>

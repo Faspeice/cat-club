@@ -164,6 +164,122 @@ function requireAuth(): void
     }
 }
 
+/**
+ * @return array{url:string,error:string}
+ */
+function handleImageUpload(string $fieldName): array
+{
+    $file = $_FILES[$fieldName] ?? null;
+    if (!is_array($file)) {
+        return ['url' => '', 'error' => ''];
+    }
+
+    $error = (int)($file['error'] ?? UPLOAD_ERR_NO_FILE);
+    if ($error === UPLOAD_ERR_NO_FILE) {
+        return ['url' => '', 'error' => ''];
+    }
+    if ($error !== UPLOAD_ERR_OK) {
+        return ['url' => '', 'error' => 'Ошибка загрузки файла'];
+    }
+
+    $tmpName = (string)($file['tmp_name'] ?? '');
+    if ($tmpName === '' || !is_uploaded_file($tmpName)) {
+        return ['url' => '', 'error' => 'Некорректный файл'];
+    }
+
+    $size = (int)($file['size'] ?? 0);
+    if ($size < 1 || $size > 5 * 1024 * 1024) {
+        return ['url' => '', 'error' => 'Размер фото должен быть до 5 МБ'];
+    }
+
+    $imageInfo = @getimagesize($tmpName);
+    $mime = is_array($imageInfo) ? (string)($imageInfo['mime'] ?? '') : '';
+    $allowed = [
+        'image/jpeg' => '.jpg',
+        'image/png' => '.png',
+        'image/webp' => '.webp',
+        'image/gif' => '.gif',
+    ];
+    $ext = $allowed[$mime] ?? '';
+    if ($ext === '') {
+        return ['url' => '', 'error' => 'Поддерживаются только JPG, PNG, WEBP и GIF'];
+    }
+
+    $uploadDir = __DIR__ . '/uploads';
+    if (!is_dir($uploadDir) && !mkdir($uploadDir, 0775, true) && !is_dir($uploadDir)) {
+        return ['url' => '', 'error' => 'Не удалось подготовить каталог для загрузки'];
+    }
+
+    try {
+        $name = date('YmdHis') . '-' . bin2hex(random_bytes(8)) . $ext;
+    } catch (Throwable $e) {
+        $name = date('YmdHis') . '-' . uniqid('', true) . $ext;
+    }
+    $target = $uploadDir . '/' . $name;
+    if (!move_uploaded_file($tmpName, $target)) {
+        return ['url' => '', 'error' => 'Не удалось сохранить загруженное фото'];
+    }
+
+    return ['url' => '/uploads/' . $name, 'error' => ''];
+}
+
+/**
+ * @return array{urls:array<int,string>,error:string}
+ */
+function handleMultiImageUpload(string $fieldName, int $maxFiles = 8): array
+{
+    $files = $_FILES[$fieldName] ?? null;
+    if (!is_array($files)) {
+        return ['urls' => [], 'error' => ''];
+    }
+
+    $names = $files['name'] ?? null;
+    $errors = $files['error'] ?? null;
+    $tmpNames = $files['tmp_name'] ?? null;
+    $sizes = $files['size'] ?? null;
+    if (!is_array($names) || !is_array($errors) || !is_array($tmpNames) || !is_array($sizes)) {
+        return ['urls' => [], 'error' => ''];
+    }
+
+    $count = count($names);
+    if ($count === 0) {
+        return ['urls' => [], 'error' => ''];
+    }
+    if ($count > $maxFiles) {
+        return ['urls' => [], 'error' => 'Можно загрузить не более ' . $maxFiles . ' фото'];
+    }
+
+    $urls = [];
+    for ($i = 0; $i < $count; $i++) {
+        $error = (int)($errors[$i] ?? UPLOAD_ERR_NO_FILE);
+        if ($error === UPLOAD_ERR_NO_FILE) {
+            continue;
+        }
+        if ($error !== UPLOAD_ERR_OK) {
+            return ['urls' => [], 'error' => 'Ошибка загрузки одного из файлов'];
+        }
+
+        $_FILES['__single_upload'] = [
+            'name' => (string)($names[$i] ?? ''),
+            'type' => '',
+            'tmp_name' => (string)($tmpNames[$i] ?? ''),
+            'error' => $error,
+            'size' => (int)($sizes[$i] ?? 0),
+        ];
+        $one = handleImageUpload('__single_upload');
+        unset($_FILES['__single_upload']);
+
+        if ($one['error'] !== '') {
+            return ['urls' => [], 'error' => $one['error']];
+        }
+        if ($one['url'] !== '') {
+            $urls[] = $one['url'];
+        }
+    }
+
+    return ['urls' => $urls, 'error' => ''];
+}
+
 $parsed = Router::parsePath();
 $path = $parsed['path'];
 $segments = $parsed['segments'];
@@ -240,9 +356,19 @@ if (str_starts_with($path, '/api/')) {
         $name = Input::str($_POST, 'name', 80);
         $breed = Input::str($_POST, 'breed', 120);
         $age = Input::int($_POST, 'age', 0);
-        $photo = Input::url($_POST, 'photo_url', 2000);
+        $upload = handleImageUpload('photo_file');
+        if ($upload['error'] !== '') {
+            authFail('login', $upload['error'], 422);
+        }
+        $photo = $upload['url'];
+        if ($photo === '') {
+            authFail('login', 'Нужно загрузить главное фото питомца', 422);
+        }
         $story = Input::str($_POST, 'story', 5000);
-        $morePhotos = Input::str($_POST, 'more_photos', 12000);
+        $morePhotosUpload = handleMultiImageUpload('more_photo_files', 12);
+        if ($morePhotosUpload['error'] !== '') {
+            authFail('login', $morePhotosUpload['error'], 422);
+        }
 
         if (mb_strlen($name) < 1) authFail('login', 'Кличка обязательна', 422);
         if (mb_strlen($breed) < 1) authFail('login', 'Порода обязательна', 422);
@@ -250,15 +376,8 @@ if (str_starts_with($path, '/api/')) {
 
         $uid = (int)($_SESSION['user']['id'] ?? 0);
         $pid = PetModel::create($pdo, $uid, $name, $breed, $age, $photo, $story);
-        foreach (preg_split('/\r\n|\r|\n/', $morePhotos) as $line) {
-            $line = trim($line);
-            if ($line === '' || mb_strlen($line) > 2000) {
-                continue;
-            }
-            if (!filter_var($line, FILTER_VALIDATE_URL)) {
-                continue;
-            }
-            PetModel::addPhoto($pdo, $pid, $line);
+        foreach ($morePhotosUpload['urls'] as $photoUrl) {
+            PetModel::addPhoto($pdo, $pid, $photoUrl);
         }
         if (wantsJson()) {
             Response::json(['ok' => true, 'id' => $pid], 201);
@@ -266,13 +385,59 @@ if (str_starts_with($path, '/api/')) {
         Response::redirect('/pets/' . $pid, 302);
     }
 
+    if ($path === '/api/pets/add-photos') {
+        requireAuth();
+        $petId = Input::int($_POST, 'pet_id', 0);
+        $pet = $petId > 0 ? PetModel::find($pdo, $petId) : null;
+        if ($petId < 1 || !$pet) {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => 'Питомец не найден'], 404);
+            }
+            Response::redirect('/pets', 302);
+        }
+        $uid = (int)($_SESSION['user']['id'] ?? 0);
+        if ((int)($pet['owner_id'] ?? 0) !== $uid) {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => 'Можно добавлять фото только своему питомцу'], 403);
+            }
+            Response::redirect('/403', 302);
+        }
+        $upload = handleMultiImageUpload('more_photo_files', 12);
+        if ($upload['error'] !== '') {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => $upload['error']], 422);
+            }
+            Response::redirect('/pets/' . $petId, 302);
+        }
+        if ($upload['urls'] === []) {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => 'Выберите хотя бы одно фото'], 422);
+            }
+            Response::redirect('/pets/' . $petId, 302);
+        }
+        foreach ($upload['urls'] as $photoUrl) {
+            PetModel::addPhoto($pdo, $petId, $photoUrl);
+        }
+        if (wantsJson()) {
+            Response::json(['ok' => true], 201);
+        }
+        Response::redirect('/pets/' . $petId, 302);
+    }
+
     if ($path === '/api/posts/create') {
         requireAuth();
         $title = Input::str($_POST, 'title', 200);
         $body = Input::str($_POST, 'body', 8000);
-        $photo = Input::url($_POST, 'photo_url', 2000);
         $topicTitle = Input::str($_POST, 'topic_title', 120);
         $redirect = safeInternalRedirect(Input::str($_POST, 'redirect', 500));
+        $upload = handleImageUpload('photo_file');
+        if ($upload['error'] !== '') {
+            if (wantsJson()) {
+                Response::json(['ok' => false, 'error' => $upload['error']], 422);
+            }
+            Response::redirect($redirect, 302);
+        }
+        $photo = $upload['url'];
 
         if (mb_strlen($title) < 3) {
             if (wantsJson()) {
