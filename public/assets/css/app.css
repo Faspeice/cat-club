@@ -147,7 +147,10 @@ button,input,select,textarea{font:inherit}
 .btn-link{background:none;padding:0;border:none;text-decoration:underline;cursor:pointer}
 
 .container{
+  display: flex;
+  flex-direction: column;
   max-width:var(--container);
+  min-height: 100dvh;
   margin:clamp(12px, 3vw, 20px) auto;
   padding:0 clamp(16px, 4vw, 24px);
   padding-left:max(clamp(16px, 4vw, 24px), env(safe-area-inset-left, 0px));
@@ -270,6 +273,14 @@ select.input{max-width:100%;cursor:pointer}
   color:var(--onBrand);
   border:none;
 }
+.site-footer{
+  margin-top: auto;
+  padding:25px 0;
+  padding-bottom:max(25px, env(safe-area-inset-bottom, 0px));
+  border-top:1px solid var(--border);
+  color:var(--muted);
+  font-size:13px;
+}
 .gallery-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
 .pet-card{background:var(--surface);border:2px solid #333;display:flex;flex-direction:column;min-height:100%}
 .pet-image-container{width:100%;height:200px;overflow:hidden;border-bottom:1px solid #ccc}
@@ -366,14 +377,7 @@ select.input{max-width:100%;cursor:pointer}
 .page-link{border:1px solid var(--border);background:#fff;border-radius:var(--radiusSm);padding:6px 10px}
 .page-link[aria-current="page"]{border-color:var(--brand);color:var(--brand);font-weight:600}
 
-.site-footer{
-  margin-top:40px;
-  padding:25px 0;
-  padding-bottom:max(25px, env(safe-area-inset-bottom, 0px));
-  border-top:1px solid var(--border);
-  color:var(--muted);
-  font-size:13px;
-}
+
 
 /* ——— Планшет и ниже: выдвижная панель меню ——— */
 @media (max-width: 900px){
