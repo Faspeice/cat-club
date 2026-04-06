@@ -8,10 +8,8 @@ RUN set -eux; \
 
 WORKDIR /var/www/html
 
-# Copy application
 COPY . /var/www/html
 
-# Default config inside container (can be overridden by bind-mount)
 RUN if [ ! -f /var/www/html/app/config/config.php ]; then \
       cp /var/www/html/app/config/config.example.php /var/www/html/app/config/config.php; \
     fi

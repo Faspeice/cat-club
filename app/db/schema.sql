@@ -1,5 +1,3 @@
--- PostgreSQL schema for Cat Club
-
 CREATE TABLE IF NOT EXISTS users (
   id BIGSERIAL PRIMARY KEY,
   nick TEXT NOT NULL UNIQUE,

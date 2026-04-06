@@ -62,6 +62,14 @@ function authFail(string $mode, string $message, int $status = 422): never
     );
 }
 
+function actionFail(string $message, string $redirectPath, int $status = 422): never
+{
+    if (wantsJson()) {
+        Response::json(['ok' => false, 'error' => $message], $status);
+    }
+    Response::redirect($redirectPath, 302);
+}
+
 function currentUser(): array
 {
     if (!empty($_SESSION['user']) && is_array($_SESSION['user'])) {
@@ -358,21 +366,21 @@ if (str_starts_with($path, '/api/')) {
         $age = Input::int($_POST, 'age', 0);
         $upload = handleImageUpload('photo_file');
         if ($upload['error'] !== '') {
-            authFail('login', $upload['error'], 422);
+            actionFail($upload['error'], '/pets', 422);
         }
         $photo = $upload['url'];
         if ($photo === '') {
-            authFail('login', 'Нужно загрузить главное фото питомца', 422);
+            actionFail('Нужно загрузить главное фото питомца', '/pets', 422);
         }
         $story = Input::str($_POST, 'story', 5000);
         $morePhotosUpload = handleMultiImageUpload('more_photo_files', 12);
         if ($morePhotosUpload['error'] !== '') {
-            authFail('login', $morePhotosUpload['error'], 422);
+            actionFail($morePhotosUpload['error'], '/pets', 422);
         }
 
-        if (mb_strlen($name) < 1) authFail('login', 'Кличка обязательна', 422);
-        if (mb_strlen($breed) < 1) authFail('login', 'Порода обязательна', 422);
-        if ($age < 0 || $age > 50) authFail('login', 'Возраст должен быть от 0 до 50', 422);
+        if (mb_strlen($name) < 1) actionFail('Кличка обязательна', '/pets', 422);
+        if (mb_strlen($breed) < 1) actionFail('Порода обязательна', '/pets', 422);
+        if ($age < 0 || $age > 50) actionFail('Возраст должен быть от 0 до 50', '/pets', 422);
 
         $uid = (int)($_SESSION['user']['id'] ?? 0);
         $pid = PetModel::create($pdo, $uid, $name, $breed, $age, $photo, $story);
@@ -480,8 +488,8 @@ if (str_starts_with($path, '/api/')) {
         $endsAt = Input::str($_POST, 'ends_at', 40);
         $endsAt = $endsAt !== '' ? $endsAt : null;
 
-        if (mb_strlen($title) < 3) authFail('login', 'Название события слишком короткое', 422);
-        if ($startsAt === '') authFail('login', 'Дата/время начала обязательны', 422);
+        if (mb_strlen($title) < 3) actionFail('Название события слишком короткое', '/events', 422);
+        if ($startsAt === '') actionFail('Дата/время начала обязательны', '/events', 422);
 
         $id = EventModel::create($pdo, $title, $body, $place, $startsAt, $endsAt);
         if (wantsJson()) {
@@ -903,7 +911,6 @@ if ($path === '/events') {
     );
 }
 
-// Forum and profile pages removed
 
 if ($path === '/403') {
     forbidden();
