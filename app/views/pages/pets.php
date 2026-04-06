@@ -85,7 +85,7 @@ if ($selectedBreed !== '') {
             ?>
             <a class="pet-card" role="listitem" href="/pets/<?= (int)$pet['id'] ?>" title="Открыть карточку питомца">
                 <div class="pet-image-container">
-                    <img class="pet-image" src="<?= e($img) ?>" alt="<?= e((string)($pet['breed'] ?? 'Питомец')) ?>" loading="lazy">
+                    <img class="pet-image" src="<?= e($img) ?>" alt="<?= e((string)($pet['breed'] ?? 'Питомец')) ?>" onerror="this.onerror=null;this.src='/assets/img/placeholder.jpg';" loading="lazy">
                 </div>
                 <div class="pet-info">
                     <span class="pet-name">Кличка: <?= e((string)($pet['name'] ?? '')) ?></span>

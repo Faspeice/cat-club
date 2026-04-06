@@ -12,7 +12,7 @@ $isOwner = !empty($user['is_auth']) && (int)($user['id'] ?? 0) === (int)($pet['o
 ?>
 <div class="pet-main">
     <div class="pet-main-image">
-        <img src="<?= e($img) ?>" alt="<?= e((string)($pet['name'] ?? 'Питомец')) ?>" loading="lazy">
+        <img src="<?= e($img) ?>" alt="<?= e((string)($pet['name'] ?? 'Питомец')) ?>" onerror="this.onerror=null;this.src='/assets/img/placeholder.jpg';" loading="lazy">
     </div>
     <div>
         <h1 class="pet-name-large"><?= e((string)($pet['name'] ?? '')) ?></h1>
@@ -50,7 +50,7 @@ $isOwner = !empty($user['is_auth']) && (int)($user['id'] ?? 0) === (int)($pet['o
                 <?php $u = is_array($ph) ? (string)($ph['photo_url'] ?? '') : (string)$ph; ?>
                 <?php $u = $u !== '' ? $u : '/assets/img/placeholder-cat.svg'; ?>
                 <div class="thumbnail">
-                    <img src="<?= e($u) ?>" alt="Фото питомца" loading="lazy">
+                    <img src="<?= e($u) ?>" alt="Фото питомца" onerror="this.onerror=null;this.src='/assets/img/placeholder-cat.svg';" loading="lazy">
                 </div>
             <?php endforeach; ?>
         </div>

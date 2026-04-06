@@ -470,7 +470,6 @@ if (str_starts_with($path, '/api/')) {
         Response::redirect($redirect, 302);
     }
 
-    // Forum endpoints removed
 
     if ($path === '/api/events/create') {
         requireAuth();

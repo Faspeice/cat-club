@@ -104,6 +104,7 @@ $nextMembersUrl = feedSidebarUrl($selectedTopic, $selectedAuthor, $topicPage, mi
                 <img class="post-image"
                      src="<?= e((string)($post['image'] ?: '/assets/img/placeholder-cat.svg')) ?>"
                      alt="<?= e((string)$post['image_alt']) ?>"
+                     onerror="this.onerror=null;this.src='/assets/img/placeholder.jpg';"
                      loading="lazy">
 
                 <p class="post-text"><?= e((string)$post['text']) ?></p>
